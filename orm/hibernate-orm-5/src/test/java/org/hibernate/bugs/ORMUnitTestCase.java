@@ -15,6 +15,11 @@
  */
 package org.hibernate.bugs;
 
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
+import javax.persistence.criteria.Subquery;
+
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.cfg.AvailableSettings;
@@ -22,58 +27,61 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.testing.junit4.BaseCoreFunctionalTestCase;
 import org.junit.Test;
 
+import example.entities.DemoChild;
+import example.entities.DemoId;
+import example.entities.DemoParent;
+
 /**
- * This template demonstrates how to develop a test case for Hibernate ORM, using its built-in unit test framework.
- * Although ORMStandaloneTestCase is perfectly acceptable as a reproducer, usage of this class is much preferred.
- * Since we nearly always include a regression test with bug fixes, providing your reproducer using this method
- * simplifies the process.
+ * This template demonstrates how to develop a test case for Hibernate ORM,
+ * using its built-in unit test framework. Although ORMStandaloneTestCase is
+ * perfectly acceptable as a reproducer, usage of this class is much preferred.
+ * Since we nearly always include a regression test with bug fixes, providing
+ * your reproducer using this method simplifies the process.
  *
- * What's even better?  Fork hibernate-orm itself, add your test case directly to a module's unit tests, then
- * submit it as a PR!
+ * What's even better? Fork hibernate-orm itself, add your test case directly to
+ * a module's unit tests, then submit it as a PR!
  */
 public class ORMUnitTestCase extends BaseCoreFunctionalTestCase {
 
-	// Add your entities here.
-	@Override
-	protected Class[] getAnnotatedClasses() {
-		return new Class[] {
-//				Foo.class,
-//				Bar.class
-		};
-	}
+    @Override
+    protected Class[] getAnnotatedClasses() {
+        return new Class[] { DemoId.class, DemoParent.class, DemoChild.class };
+    }
 
-	// If you use *.hbm.xml mappings, instead of annotations, add the mappings here.
-	@Override
-	protected String[] getMappings() {
-		return new String[] {
-//				"Foo.hbm.xml",
-//				"Bar.hbm.xml"
-		};
-	}
-	// If those mappings reside somewhere other than resources/org/hibernate/test, change this.
-	@Override
-	protected String getBaseForMappings() {
-		return "org/hibernate/test/";
-	}
+    @Override
+    protected String[] getMappings() {
+        return new String[] {};
+    }
 
-	// Add in any settings that are specific to your test.  See resources/hibernate.properties for the defaults.
-	@Override
-	protected void configure(Configuration configuration) {
-		super.configure( configuration );
+    // Add in any settings that are specific to your test. See
+    // resources/hibernate.properties for the defaults.
+    @Override
+    protected void configure(final Configuration configuration) {
+        super.configure(configuration);
 
-		configuration.setProperty( AvailableSettings.SHOW_SQL, Boolean.TRUE.toString() );
-		configuration.setProperty( AvailableSettings.FORMAT_SQL, Boolean.TRUE.toString() );
-		//configuration.setProperty( AvailableSettings.GENERATE_STATISTICS, "true" );
-	}
+        configuration.setProperty(AvailableSettings.SHOW_SQL, Boolean.TRUE.toString());
+        configuration.setProperty(AvailableSettings.FORMAT_SQL, Boolean.TRUE.toString());
+        // configuration.setProperty( AvailableSettings.GENERATE_STATISTICS, "true" );
+    }
 
-	// Add your tests, using standard JUnit.
-	@Test
-	public void hhh123Test() throws Exception {
-		// BaseCoreFunctionalTestCase automatically creates the SessionFactory and provides the Session.
-		Session s = openSession();
-		Transaction tx = s.beginTransaction();
-		// Do stuff...
-		tx.commit();
-		s.close();
-	}
+    // Add your tests, using standard JUnit.
+    @Test
+    public void hhh123Test() throws Exception {
+        // BaseCoreFunctionalTestCase automatically creates the SessionFactory and
+        // provides the Session.
+        final Session s = openSession();
+        final Transaction tx = s.beginTransaction();
+//        s.createQuery();
+        final CriteriaBuilder cb = s.getCriteriaBuilder();
+        final CriteriaQuery<DemoParent> query = cb.createQuery(DemoParent.class);
+        final Root<DemoParent> root = query.from(DemoParent.class);
+        final Subquery<DemoChild> subquery = query.subquery(DemoChild.class);
+        final Root<DemoChild> sqRoot = subquery.from(DemoChild.class);
+        subquery.select(sqRoot).where(sqRoot.get("date").isNull());
+        query.select(root).where(cb.exists(subquery));
+        s.createQuery(query).getResultList();
+        // Do stuff...
+        tx.commit();
+        s.close();
+    }
 }
